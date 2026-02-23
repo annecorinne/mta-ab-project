@@ -106,6 +106,8 @@ Three tables, designed to mirror a production warehouse schema:
 
 ## Running the Project
 
+
+
 ```bash
 # 1. Clone and set up environment
 git clone https://github.com/YOUR_USERNAME/mta-ab-project.git
@@ -123,6 +125,22 @@ python data/raw/simulate_data.py
 jupyter lab
 ```
 
+## Phase 1 — Status
+
+Data architecture and simulation complete as of February 2026.
+
+**Schema:** Three-table design defined in `sql/schema.sql` — `user_touchpoints`, 
+`conversions`, and `experiment_assignments`, all joined on `user_id`.
+
+**Simulation:** `data/raw/simulate_data.py` generates 50,000 users with realistic 
+multi-touch journeys across five channels. Behavioral economics effects are baked 
+into the data-generating process — the scarcity arm (Arm D) produces a 18.2% CVR 
+lift over control, but repeat purchase rates are suppressed to 28% vs. 45% for 
+control. The gap between CVR performance and LTV is the central finding the 
+analysis will surface.
+
+**Validation:** DuckDB loaded all three tables cleanly — zero nulls across critical 
+fields, arms balanced at ~25% each, overall CVR of 11.2%.
 ---
 
 ## Repository Structure
