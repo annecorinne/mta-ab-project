@@ -9,6 +9,11 @@
 -- Run after: 03_experiment_validation.sql
 -- =============================================================================
 
+-- Master user-level table consumed by all Python notebooks.
+-- One row per user with journey shape, conversion outcome, and experiment arm.
+-- COALESCE ensures non-converting users have 0s rather than NULLs
+-- so they're included cleanly in aggregations.
+
 -- Master user-level analysis table — one row per user
 CREATE OR REPLACE VIEW analysis_users AS
 SELECT
@@ -52,6 +57,12 @@ LEFT JOIN user_channel_summary  cs ON ea.user_id = cs.user_id
 LEFT JOIN user_journey_summary  fl ON ea.user_id = fl.user_id
 LEFT JOIN stg_conversions       c  ON ea.user_id = c.user_id;
 
+
+-- Touchpoint-level table for MTA model inputs.
+-- Filtered to converted users only — non-converters don't contribute
+-- to attribution credit calculations.
+-- WHERE clause ensures only pre-conversion touches are included.
+
 -- Touchpoints for converted users only — input for MTA models
 CREATE OR REPLACE VIEW analysis_mta_touchpoints AS
 SELECT
@@ -89,6 +100,9 @@ JOIN stg_experiment_assignments ea ON tp.user_id = ea.user_id
 -- Only include touchpoints that happened BEFORE conversion
 WHERE tp.touch_timestamp < c.conversion_timestamp;
 
+-- Channel funnel showing impression-to-conversion rates by channel and arm.
+-- Used in EDA to understand which channels drive the most conversions
+-- and whether funnel efficiency varies across experiment arms.
 
 -- Channel funnel — impression to conversion rates by channel and arm
 CREATE OR REPLACE VIEW analysis_channel_funnel AS
@@ -118,6 +132,10 @@ LEFT JOIN stg_conversions       c  ON tp.user_id = c.user_id
 GROUP BY tp.channel, ea.arm
 ORDER BY tp.channel, ea.arm;
 
+-- The central finding of the project in one table.
+-- Revenue per visitor is the key metric — not CVR.
+-- Scarcity arm wins on CVR but loses on revenue per visitor
+-- once 90-day LTV is factored in.
 
 
 -- LTV and CVR summary by arm — the core finding of the project

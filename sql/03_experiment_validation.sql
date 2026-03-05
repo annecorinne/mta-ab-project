@@ -10,6 +10,9 @@
 -- Run before: 04_analysis_datasets.sql
 -- =============================================================================
 
+-- Checks that each arm received roughly 25% of users.
+-- A lopsided split would introduce selection bias into the results.
+-- Expect ~12,500 users per arm.
 
 -- Are arms evenly distributed?
 CREATE OR REPLACE VIEW validation_arm_balance AS
@@ -21,6 +24,12 @@ FROM stg_experiment_assignments
 GROUP BY arm
 ORDER BY arm;
 
+
+-- Checks for users assigned to more than one arm — this would violate
+-- the Stable Unit Treatment Value Assumption (SUTVA).
+-- This view should return zero rows. Any rows here = experiment is compromised.
+
+
 -- Does any user appear in more than one arm? (should be zero)
 CREATE OR REPLACE VIEW validation_contamination AS
 SELECT
@@ -30,6 +39,10 @@ FROM stg_experiment_assignments
 GROUP BY user_id
 HAVING COUNT(DISTINCT arm) > 1;
 
+
+-- Checks that arms are comparable on pre-experiment characteristics.
+-- If one arm has significantly more new visitors or mobile users,
+-- those differences could explain outcomes rather than the nudge itself.
 
 -- Are arms balanced on pre-experiment characteristics?
 CREATE OR REPLACE VIEW validation_covariate_balance AS
@@ -44,6 +57,9 @@ FROM stg_experiment_assignments
 GROUP BY arm
 ORDER BY arm;
 
+-- Flags users who converted before they were assigned to an arm.
+-- This is a common data logging bug in real experiments.
+-- This view should return zero rows. Any rows here = pipeline bug.
 
 -- Were any users assigned AFTER they converted? (should be zero)
 CREATE OR REPLACE VIEW validation_timing AS

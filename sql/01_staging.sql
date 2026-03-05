@@ -9,6 +9,9 @@
 -- Run before: 02_journey_reconstruction.sql
 -- =============================================================================
 
+-- Removes duplicate touchpoints caused by ad pixels firing twice.
+-- Normalises channel and device to lowercase for consistent joins downstream.
+
 -- Deduplicate touchpoints and cast types cleanly
 CREATE OR REPLACE VIEW stg_user_touchpoints AS
 SELECT DISTINCT
@@ -23,6 +26,10 @@ FROM user_touchpoints
 WHERE touchpoint_id IS NOT NULL
   AND user_id       IS NOT NULL
   AND timestamp     IS NOT NULL;
+  
+  
+-- Filters out zero-value orders and cases where LTV is less than AOV
+-- (data integrity check — LTV must always be >= first order value).
   
 -- Clean conversions — remove nulls and impossible order values
 CREATE OR REPLACE VIEW stg_conversions AS
@@ -40,6 +47,9 @@ WHERE conversion_id  IS NOT NULL
   AND order_value    > 0          -- filter out zero or negative orders
   AND ltv_90d        >= order_value; -- LTV must be at least the first order
   
+-- Enforces one row per user using ROW_NUMBER().
+-- If a user appears twice, we keep their earliest assignment record.
+-- COALESCE sets null prior_orders to 0 (new visitors have no history).
   
   -- Clean experiment assignments — enforce one row per user
 CREATE OR REPLACE VIEW stg_experiment_assignments AS

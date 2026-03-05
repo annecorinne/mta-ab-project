@@ -11,6 +11,11 @@
 -- =============================================================================
 
 
+
+-- Adds sequence numbers and time-between-touches to every touchpoint.
+-- LAG/LEAD window functions let us see what channel came before and after
+-- each touch — essential for understanding how users move across channels.
+
 -- Add journey order and time-between-touches for each user
 CREATE OR REPLACE VIEW journeys_ordered AS
 SELECT
@@ -55,6 +60,11 @@ SELECT
 FROM stg_user_touchpoints tp;
 
 
+
+-- Identifies the first channel that introduced a user to the brand
+-- and the last channel they saw before converting.
+-- These are the two touches that simple attribution models focus on.
+
 -- Identify first touch and last touch channel per user
 CREATE OR REPLACE VIEW user_first_last_touch AS
 SELECT
@@ -83,6 +93,10 @@ QUALIFY ROW_NUMBER() OVER (
     PARTITION BY user_id ORDER BY touch_timestamp ASC
 ) = 1;
 
+
+-- Counts distinct channels per user and flags cross-channel behaviour.
+-- Users who saw multiple channels are the most important for attribution
+-- because credit needs to be split across more than one touchpoint.
 
 -- Flag users who saw more than one channel (cross-channel behaviour)
 CREATE OR REPLACE VIEW user_channel_summary AS
